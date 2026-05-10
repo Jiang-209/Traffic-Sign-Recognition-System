@@ -1,0 +1,4 @@
+﻿created_time,image_name,predicted_class_id,predicted_class_name,correct_class_id,correct_class_name,confidence,remark,saved_image_path
+2026-05-11 02:54:11,test.png,11,Right-of-way at the next intersection,33,Turn right ahead,0.86,²âÊÔ·´À¡,feedback/images/20260511_025411_test.png
+2026-05-11 02:54:28,proxy_test.png,14,Stop,38,Keep right,0.92,´úÀí²âÊÔ,feedback/images/20260511_025428_proxy_test.png
+2026-05-11 03:05:49,05.png,31,Wild animals crossing,17,No entry,0.2924,,feedback/images/20260511_030549_05.png
