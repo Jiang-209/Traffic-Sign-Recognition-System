@@ -1,3 +1,14 @@
 data/*.p
 data/train.p
 .claude/
+backend/__pycache__/
+__pycache__/
+*.pyc
+frontend/node_modules/
+backend/feedback/
+traffic_modelora.*
+checkpoint
+summary_train_ora.npy
+*.png
+.vs/
+.vscode/
