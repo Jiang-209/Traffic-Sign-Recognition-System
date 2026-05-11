@@ -1,3 +1,4 @@
+data/
 data/*.p
 data/train.p
 .claude/
