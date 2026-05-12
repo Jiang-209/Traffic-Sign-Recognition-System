@@ -10,6 +10,9 @@ backend/feedback/
 traffic_modelora.*
 checkpoint
 summary_train_ora.npy
+tsrd_outputs/
+tsrd_model_*
+summary_train_tsrd_*
 *.png
 .vs/
 .vscode/
