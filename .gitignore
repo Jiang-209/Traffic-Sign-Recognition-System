@@ -11,6 +11,7 @@ traffic_modelora.*
 checkpoint
 summary_train_ora.npy
 tsrd_outputs/
+tsrd_runs/
 tsrd_model_*
 summary_train_tsrd_*
 *.png
