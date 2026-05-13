@@ -11,9 +11,11 @@ import os
 MODEL_PATH = os.environ.get(
     "MODEL_PATH",
     os.path.join(os.path.dirname(__file__), "..",
-                 "tsrd_runs", "scratch_20260513_051658",
+                 "tsrd_runs", "scratch_20260513_051658", 
                  "checkpoints", "best", "tsrd_scratch_best")
 )
+
+
 
 # 输入图像尺寸（必须与训练时一致）
 IMG_HEIGHT = 32
@@ -35,6 +37,13 @@ API_DESCRIPTION = "基于 CNN 的 TSRD 交通标志识别系统后端接口（58
 
 # 允许的上传图片格式
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png"}
+
+# ============================================================
+# 模型显示名称
+# ============================================================
+# 当前加载模型的显示名称（前端可见）
+# 可选值: "TSRD Model"（基线，全图resize）、"TSRD-ROI Model"（ROI裁剪）
+MODEL_NAME = "TSRD Model"
 
 # ============================================================
 # 类别名称文件路径

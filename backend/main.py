@@ -20,6 +20,7 @@ from config import (
     API_VERSION,
     API_DESCRIPTION,
     MODEL_PATH,
+    MODEL_NAME,
     IMG_HEIGHT,
     IMG_WIDTH,
     IMG_CHANNELS,
@@ -151,6 +152,7 @@ async def health_check():
     return {
         "status": "ok",
         "model_loaded": model is not None and model.loaded,
+        "model_name": MODEL_NAME if model is not None and model.loaded else "未加载",
     }
 
 
