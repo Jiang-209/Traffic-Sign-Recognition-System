@@ -57,7 +57,7 @@ class ModelLoader:
                 f"可通过环境变量 MODEL_PATH 指定模型路径"
             )
 
-        print(f"[INFO] 正在加载模型: {self.model_path}")
+        print(f"[INFO] Loading model: {self.model_path}")
 
         # 创建 TF Session
         self.sess = tf.Session()
@@ -70,12 +70,12 @@ class ModelLoader:
         self.graph = tf.get_default_graph()
         self._x = self.graph.get_tensor_by_name("x:0")
         self._keep_prob = self.graph.get_tensor_by_name("keep_prob:0")
-        self._k_p_conv = self.graph.get_tensor_by_name("k_p_conv:0")
+        self._k_p_conv = self.graph.get_tensor_by_name("keep_p_conv:0")
         self._logits = self.graph.get_tensor_by_name("logits:0")
         self._softmax = tf.nn.softmax(self._logits)
 
         self.loaded = True
-        print(f"[INFO] 模型加载成功 ✓")
+        print(f"[INFO] Model loaded successfully")
 
     def predict(self, image_array: np.ndarray) -> np.ndarray:
         """
@@ -85,7 +85,7 @@ class ModelLoader:
             image_array: shape=(1, 32, 32, 1) 的预处理图像
 
         返回:
-            softmax 概率数组, shape=(1, 43)，每个元素为对应类别的概率
+            softmax 概率数组, shape=(1, 58)，每个元素为对应类别的概率
         """
         proba = self.sess.run(
             self._softmax,
@@ -101,4 +101,4 @@ class ModelLoader:
         """关闭 TF Session，释放资源"""
         if self.sess is not None:
             self.sess.close()
-            print("[INFO] TF Session 已关闭")
+            print("[INFO] TF Session closed")

@@ -1,0 +1,32 @@
+2026-05-14 00:39:23.215025: I tensorflow/core/util/port.cc:113] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING:tensorflow:From C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\keras\src\losses.py:2976: The name tf.losses.sparse_softmax_cross_entropy is deprecated. Please use tf.compat.v1.losses.sparse_softmax_cross_entropy instead.
+
+WARNING:tensorflow:From E:\TSRScnn\diploma project1\backend\model_loader.py:11: The name tf.disable_v2_behavior is deprecated. Please use tf.compat.v1.disable_v2_behavior instead.
+
+WARNING:tensorflow:From C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\tensorflow\python\compat\v2_compat.py:108: disable_resource_variables (from tensorflow.python.ops.variable_scope) is deprecated and will be removed in a future version.
+Instructions for updating:
+non-resource variables are not supported in the long term
+INFO:     Started server process [35972]
+INFO:     Waiting for application startup.
+2026-05-14 00:39:30.257987: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE SSE2 SSE3 SSE4.1 SSE4.2 AVX2 AVX_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+WARNING:tensorflow:From E:\TSRScnn\diploma project1\backend\model_loader.py:66: The name tf.train.import_meta_graph is deprecated. Please use tf.compat.v1.train.import_meta_graph instead.
+
+2026-05-14 00:39:30.339191: I tensorflow/compiler/mlir/mlir_graph_optimization_pass.cc:388] MLIR V1 optimization pass is not enabled
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+==================================================
+[STARTUP] Starting traffic sign recognition backend service...
+[STARTUP] Class names loaded: 58 classes
+[INFO] Loading model: E:\TSRScnn\diploma project1\backend\..\tsrd_runs\scratch_20260513_051658\checkpoints\best\tsrd_scratch_best
+[INFO] Model loaded successfully
+==================================================
+[WARN] Class name mismatch: corrected_id=0
+[FEEDBACK] Saved: pred_id=1 -> correct_id=0, image=saved
+INFO:     127.0.0.1:15364 - "POST /feedback HTTP/1.1" 200 OK
+INFO:     127.0.0.1:15369 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:15370 - "GET /classes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:15371 - "POST /predict HTTP/1.1" 200 OK
+[WARN] Class name mismatch: corrected_id=0
+[FEEDBACK] Saved: pred_id=1 -> correct_id=0, image=saved
+INFO:     127.0.0.1:15372 - "POST /feedback HTTP/1.1" 200 OK

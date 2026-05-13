@@ -1,55 +1,70 @@
 """
-GTSRB 43 类交通标志名称映射
-从 signnames.csv 读取，提供 class_id -> class_name 的查找能力
+TSRD 58 类交通标志名称映射
+从 signnames_tsrd.csv 读取
 """
 import csv
 import os
 
-# 内置的 GTSRB 43 类名称（兜底，当 CSV 文件不可用时使用）
+# 内置的 TSRD 58 类名称（兜底，当 CSV 文件不可用时使用）
 _BUILTIN_CLASS_NAMES = {
-    0: "Speed limit (20km/h)",
-    1: "Speed limit (30km/h)",
-    2: "Speed limit (50km/h)",
-    3: "Speed limit (60km/h)",
-    4: "Speed limit (70km/h)",
-    5: "Speed limit (80km/h)",
-    6: "End of speed limit (80km/h)",
-    7: "Speed limit (100km/h)",
-    8: "Speed limit (120km/h)",
-    9: "No passing",
-    10: "No passing for vehicles over 3.5 metric tons",
-    11: "Right-of-way at the next intersection",
-    12: "Priority road",
-    13: "Yield",
-    14: "Stop",
-    15: "No vehicles",
-    16: "Vehicles over 3.5 metric tons prohibited",
-    17: "No entry",
-    18: "General caution",
-    19: "Dangerous curve to the left",
-    20: "Dangerous curve to the right",
-    21: "Double curve",
-    22: "Bumpy road",
-    23: "Slippery road",
-    24: "Road narrows on the right",
-    25: "Road work",
-    26: "Traffic signals",
-    27: "Pedestrians",
-    28: "Children crossing",
-    29: "Bicycles crossing",
-    30: "Beware of ice/snow",
-    31: "Wild animals crossing",
-    32: "End of all speed and passing limits",
-    33: "Turn right ahead",
-    34: "Turn left ahead",
-    35: "Ahead only",
-    36: "Go straight or right",
-    37: "Go straight or left",
-    38: "Keep right",
-    39: "Keep left",
-    40: "Roundabout mandatory",
-    41: "End of no passing",
-    42: "End of no passing by vehicles over 3.5 metric tons",
+    0: "限制速度5km/h",
+    1: "限制速度15km/h",
+    2: "限制速度30km/h",
+    3: "限制速度40km/h",
+    4: "限制速度50km/h",
+    5: "限制速度60km/h",
+    6: "限制速度70km/h",
+    7: "限制速度80km/h",
+    8: "禁止直行和向左转弯",
+    9: "禁止直行和向右转弯",
+    10: "禁止直行",
+    11: "禁止向左转弯",
+    12: "禁止向左向右转弯",
+    13: "禁止向右转弯",
+    14: "禁止超车",
+    15: "禁止掉头",
+    16: "禁止机动车驶入",
+    17: "禁止鸣喇叭",
+    18: "解除限制速度40km/h",
+    19: "解除限制速度50km/h",
+    20: "直行和向右转弯",
+    21: "直行",
+    22: "向左转弯",
+    23: "向左和向右转弯",
+    24: "向右转弯",
+    25: "靠左侧车道行驶",
+    26: "靠右侧车道行驶",
+    27: "环岛行驶",
+    28: "机动车行驶",
+    29: "鸣喇叭",
+    30: "非机动车行驶",
+    31: "允许掉头",
+    32: "注意合流",
+    33: "注意信号灯",
+    34: "注意危险",
+    35: "注意行人",
+    36: "注意非机动车",
+    37: "注意儿童",
+    38: "向右急弯路",
+    39: "向左急弯路",
+    40: "下陡坡",
+    41: "上陡坡",
+    42: "减速慢行",
+    43: "右侧T形交叉",
+    44: "左侧T形交叉",
+    45: "村庄",
+    46: "反向弯路",
+    47: "无人看守铁路道口",
+    48: "施工",
+    49: "连续弯路",
+    50: "有人看守铁路道口",
+    51: "事故易发路段",
+    52: "停车让行",
+    53: "禁止通行",
+    54: "禁止停车",
+    55: "禁止驶入",
+    56: "减速让行",
+    57: "停车检查",
 }
 
 
@@ -65,7 +80,7 @@ def load_class_names(csv_path: str) -> dict:
         return dict(_BUILTIN_CLASS_NAMES)
 
     class_names = {}
-    with open(csv_path, "r", encoding="utf-8") as f:
+    with open(csv_path, "r", encoding="gbk") as f:
         reader = csv.reader(f)
         header = next(reader, None)  # 跳过表头
         for row in reader:
@@ -74,8 +89,8 @@ def load_class_names(csv_path: str) -> dict:
                 class_name = row[1].strip()
                 class_names[class_id] = class_name
 
-    if len(class_names) != 43:
-        print(f"[WARN] Expected 43 classes, got {len(class_names)}. "
+    if len(class_names) != 58:
+        print(f"[WARN] Expected 58 classes, got {len(class_names)}. "
               f"Using built-in names as fallback.")
         return dict(_BUILTIN_CLASS_NAMES)
 

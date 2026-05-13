@@ -39,9 +39,9 @@ from feedback_handler import init_feedback_dir, save_feedback
 class FeedbackData(BaseModel):
     """用户反馈数据结构"""
     image_name: str = Field(..., description="原始图片文件名")
-    predicted_class_id: int = Field(..., ge=0, le=42, description="模型预测的类别 ID")
+    predicted_class_id: int = Field(..., ge=0, le=57, description="模型预测的类别 ID")
     predicted_class_name: str = Field(..., description="模型预测的类别名称")
-    correct_class_id: int = Field(..., ge=0, le=42, description="用户修正的类别 ID")
+    correct_class_id: int = Field(..., ge=0, le=57, description="用户修正的类别 ID")
     correct_class_name: str = Field(..., description="用户修正的类别名称")
     confidence: float = Field(..., ge=0.0, le=1.0, description="模型预测置信度")
     remark: str = Field(default="", description="用户备注")
@@ -79,11 +79,11 @@ def startup():
     global model, class_names
 
     print("=" * 50)
-    print("[STARTUP] 正在启动交通标志识别后端服务...")
+    print("[STARTUP] Starting traffic sign recognition backend service...")
 
     # 加载类别名称
     class_names = load_class_names(CLASS_NAMES_CSV)
-    print(f"[STARTUP] 类别名称加载完成，共 {len(class_names)} 类")
+    print(f"[STARTUP] Class names loaded: {len(class_names)} classes")
 
     # 加载模型
     model = ModelLoader(
@@ -95,10 +95,10 @@ def startup():
     try:
         model.load_model()
     except FileNotFoundError as e:
-        print(f"[STARTUP] 模型加载失败: {e}")
-        print("[STARTUP] 服务仍可启动，但 /predict 接口将不可用")
+        print(f"[STARTUP] Model load failed: {e}")
+        print("[STARTUP] Service can still start, but /predict will be unavailable")
     except Exception as e:
-        print(f"[STARTUP] 模型加载时发生未知错误: {e}")
+        print(f"[STARTUP] Unknown error during model loading: {e}")
 
     # 初始化反馈目录与 CSV
     init_feedback_dir()
@@ -169,8 +169,8 @@ async def predict(file: UploadFile = File(...)):
 
     返回格式:
     {
-        "class_id": int,        # 预测类别 ID (0-42)
-        "class_name": str,      # 类别英文名
+        "class_id": int,        # 预测类别 ID (0-57)
+        "class_name": str,      # 类别中文名
         "confidence": float,    # 置信度 (0-1)
         "processing_time": float, # 推理耗时（秒）
         "reliable": bool        # 是否可靠 (confidence >= 阈值)
@@ -212,7 +212,7 @@ async def predict(file: UploadFile = File(...)):
     elapsed = time.time() - start_time
 
     # ---- 6. 解析结果 ----
-    proba = proba[0]                        # shape (43,)
+    proba = proba[0]                        # shape (58,)
     class_id = int(np.argmax(proba))        # 最高概率的类别索引
     confidence = float(proba[class_id])     # 对应的置信度
     class_name = get_class_name(class_id, class_names)
@@ -233,7 +233,7 @@ async def predict(file: UploadFile = File(...)):
 @app.get("/classes")
 async def get_classes():
     """
-    获取所有 GTSRB 43 类交通标志名称列表。
+    获取所有 TSRD 58 类交通标志名称列表。
 
     返回格式:
     [
@@ -284,8 +284,7 @@ async def submit_feedback(
     expected_name = get_class_name(data.correct_class_id, class_names)
     if data.correct_class_name != expected_name:
         # 以前端传的为准，但打印一条警告
-        print(f"[WARN] 反馈类别名称不一致: "
-              f"前端={data.correct_class_name}, 服务端={expected_name}")
+        print(f"[WARN] Class name mismatch: corrected_id={data.correct_class_id}")
 
     # ---- 3. 读取图片内容 ----
     image_bytes = None
@@ -293,7 +292,7 @@ async def submit_feedback(
         try:
             image_bytes = await image.read()
         except Exception:
-            print("[WARN] 反馈图片读取失败，仅保存 CSV 记录")
+            print("[WARN] Failed to read feedback image, saving CSV record only")
 
     # ---- 4. 保存反馈 ----
     try:
@@ -307,13 +306,13 @@ async def submit_feedback(
             remark=data.remark,
             image_bytes=image_bytes,
         )
-        print(f"[FEEDBACK] 反馈已保存: "
-              f"预测={data.predicted_class_name} -> 修正={data.correct_class_name}, "
-              f"图片={'已保存' if saved_path else '未保存'}")
+        print(f"[FEEDBACK] Saved: "
+              f"pred_id={data.predicted_class_id} -> correct_id={data.correct_class_id}, "
+              f"image={'saved' if saved_path else 'not saved'}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"反馈保存失败: {str(e)}")
 
     return {
         "success": True,
-        "message": "反馈提交成功，感谢您的参与！",
+        "message": "Feedback submitted. Thank you!",
     }

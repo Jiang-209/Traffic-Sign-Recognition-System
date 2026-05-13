@@ -10,7 +10,9 @@ import os
 # 支持 TF1 checkpoint 格式（.meta / .index / .data-*）
 MODEL_PATH = os.environ.get(
     "MODEL_PATH",
-    os.path.join(os.path.dirname(__file__), "..", "traffic_modelora")
+    os.path.join(os.path.dirname(__file__), "..",
+                 "tsrd_runs", "scratch_20260513_051658",
+                 "checkpoints", "best", "tsrd_scratch_best")
 )
 
 # 输入图像尺寸（必须与训练时一致）
@@ -29,7 +31,7 @@ TOP_K = 5                    # 返回 Top-K 概率（预留）
 # ============================================================
 API_TITLE = "Traffic Sign Recognition API"
 API_VERSION = "1.0.0"
-API_DESCRIPTION = "基于 CNN 的 GTSRB 交通标志识别系统后端接口"
+API_DESCRIPTION = "基于 CNN 的 TSRD 交通标志识别系统后端接口（58 类中文交通标志）"
 
 # 允许的上传图片格式
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png"}
@@ -38,5 +40,5 @@ ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png"}
 # 类别名称文件路径
 # ============================================================
 CLASS_NAMES_CSV = os.path.join(
-    os.path.dirname(__file__), "..", "data", "signnames.csv"
+    os.path.dirname(__file__), "..", "data", "TSRD", "signnames_tsrd.csv"
 )

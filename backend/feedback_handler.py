@@ -37,7 +37,7 @@ def init_feedback_dir() -> None:
         with open(FEEDBACK_CSV, "w", newline="", encoding="utf-8-sig") as f:
             writer = csv.writer(f)
             writer.writerow(CSV_HEADERS)
-        print(f"[STARTUP] 反馈 CSV 文件已创建: {FEEDBACK_CSV}")
+        print(f"[STARTUP] Feedback CSV created: {FEEDBACK_CSV}")
 
 
 def save_feedback(
