@@ -7,6 +7,7 @@ __pycache__/
 *.pyc
 frontend/node_modules/
 backend/feedback/
+backend/help_feedback/
 traffic_modelora.*
 checkpoint
 summary_train_ora.npy
