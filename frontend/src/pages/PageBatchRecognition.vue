@@ -103,6 +103,7 @@
                 <th class="col-file">文件名</th>
                 <th class="col-result">识别结果</th>
                 <th class="col-confidence">置信度</th>
+                <th class="col-top5">Top-5</th>
                 <th class="col-status">状态</th>
                 <th class="col-feedback">反馈</th>
               </tr>
@@ -136,6 +137,14 @@
                       <span class="confidence-num">{{ (item.result.confidence * 100).toFixed(1) }}%</span>
                     </template>
                   </td>
+                  <td class="col-top5">
+                    <button
+                      v-if="item.status === 'success'"
+                      class="batch-top5-btn"
+                      @click.stop="openBatchTop5(item)"
+                    >Top5</button>
+                    <span v-else class="action-placeholder">--</span>
+                  </td>
                   <td class="col-status">
                     <span v-if="item.status === 'success'" class="status-badge status-ok">成功</span>
                     <span v-else class="status-badge status-fail">失败</span>
@@ -154,7 +163,7 @@
                 </tr>
                 <!-- 反馈行 -->
                 <tr v-if="feedbackTarget && feedbackTarget.id === item.id" class="feedback-row">
-                  <td colspan="6">
+                  <td colspan="7">
                     <div class="feedback-inline">
                       <div class="feedback-inner">
                         <span class="feedback-predicted">
@@ -198,6 +207,14 @@
         </div>
       </div>
     </Transition>
+
+    <!-- Top5 模态框 -->
+    <Top5Modal
+      :visible="batchTop5Visible"
+      :top5="batchTop5Data"
+      :filename="batchTop5Filename"
+      @close="batchTop5Visible = false"
+    />
   </div>
 </template>
 
@@ -205,6 +222,7 @@
 import { ref, computed } from 'vue'
 import { predictImage, submitFeedback } from '../api/predict.js'
 import { CLASS_NAMES } from '../data/classNames.js'
+import Top5Modal from '../components/Top5Modal.vue'
 
 const files = ref([])
 const isDragover = ref(false)
@@ -328,6 +346,17 @@ async function startBatch() {
   isProcessing.value = false
 }
 
+// ===== Top5 =====
+const batchTop5Visible = ref(false)
+const batchTop5Data = ref([])
+const batchTop5Filename = ref('')
+
+function openBatchTop5(item) {
+  batchTop5Data.value = item.result?.top5 || []
+  batchTop5Filename.value = item.file.name
+  batchTop5Visible.value = true
+}
+
 // ===== 反馈 =====
 const feedbackTarget = ref(null)
 const fbCorrectClass = ref(null)
@@ -447,7 +476,21 @@ async function handleSubmitFeedback(item) {
 .col-result { min-width: 120px; }
 .col-confidence { min-width: 100px; white-space: nowrap; }
 .col-status { width: 44px; text-align: center; }
+.col-top5 { width: 56px; text-align: center; }
 .col-feedback { width: 44px; text-align: center; }
+
+.batch-top5-btn {
+  padding: 2px 8px;
+  border: 1.5px solid var(--color-primary);
+  border-radius: 4px;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.batch-top5-btn:hover { background: var(--color-primary); color: #fff; }
 .file-cell { display: flex; align-items: center; gap: 6px; }
 .cell-thumb { width: 28px; height: 28px; border-radius: 4px; object-fit: cover; flex-shrink: 0; background: #e2e8f0; }
 .cell-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text); font-size: 0.8rem; }

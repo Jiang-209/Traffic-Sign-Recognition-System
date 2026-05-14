@@ -1,7 +1,3 @@
-<!--
-  HistoryTable.vue - 识别历史记录表格
-  展示最近的识别记录，支持清空
--->
 <template>
   <div class="history-panel" v-if="records.length > 0">
     <div class="history-header">
@@ -28,7 +24,6 @@
             <th>状态</th>
           </tr>
         </thead>
-        <!-- 过渡动画 - 新记录插入 -->
         <TransitionGroup name="fade" tag="tbody">
           <tr v-for="(record, index) in records" :key="record.id">
             <td class="td-index">{{ index + 1 }}</td>
@@ -58,18 +53,12 @@
 import { ref, watch } from 'vue'
 
 const props = defineProps({
-  /** 新记录（由父组件推送） */
-  newRecord: {
-    type: Object,
-    default: null,
-  },
+  newRecord: { type: Object, default: null },
 })
 
-// 历史记录列表（从 localStorage 恢复）
 const STORAGE_KEY = 'traffic_sign_history'
 const records = ref(loadHistory())
 
-/** 从 localStorage 加载历史 */
 function loadHistory() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -79,30 +68,26 @@ function loadHistory() {
   }
 }
 
-/** 保存到 localStorage */
 function saveHistory() {
-  // 最多保留 50 条
   const trimmed = records.value.slice(0, 50)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed))
 }
 
-/** 监听新记录 */
 watch(() => props.newRecord, (record) => {
   if (!record) return
   records.value.unshift({
     ...record,
-    id: Date.now(),  // 用时间戳做唯一 ID
+    id: Date.now(),
+    top5: record.top5 || [],
   })
   saveHistory()
 }, { deep: true })
 
-/** 清空记录 */
 function handleClear() {
   records.value = []
   localStorage.removeItem(STORAGE_KEY)
 }
 
-/** 置信度徽章颜色 */
 function confidenceBadge(confidence) {
   if (confidence >= 0.9) return 'badge-high'
   if (confidence >= 0.7) return 'badge-mid'
@@ -160,16 +145,9 @@ function confidenceBadge(confidence) {
   background: #fef2f2;
 }
 
-/* 表格 */
-.table-wrapper {
-  overflow-x: auto;
-}
+.table-wrapper { overflow-x: auto; }
 
-.history-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-}
+.history-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 
 .history-table th {
   text-align: left;
@@ -189,34 +167,13 @@ function confidenceBadge(confidence) {
   color: var(--color-text);
 }
 
-.history-table tbody tr {
-  transition: background var(--transition);
-}
+.history-table tbody tr { transition: background var(--transition); }
+.history-table tbody tr:hover { background: var(--color-hover); }
 
-.history-table tbody tr:hover {
-  background: var(--color-hover);
-}
+.td-index { color: #94a3b8; font-weight: 500; width: 40px; }
+.td-filename { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.td-time { color: var(--color-text-secondary); font-size: 0.8rem; white-space: nowrap; }
 
-.td-index {
-  color: #94a3b8;
-  font-weight: 500;
-  width: 40px;
-}
-
-.td-filename {
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.td-time {
-  color: var(--color-text-secondary);
-  font-size: 0.8rem;
-  white-space: nowrap;
-}
-
-/* 标签 */
 .tag {
   display: inline-block;
   padding: 2px 10px;
@@ -228,7 +185,6 @@ function confidenceBadge(confidence) {
   white-space: nowrap;
 }
 
-/* 置信度 */
 .badge-high { color: var(--color-success); font-weight: 700; }
 .badge-mid  { color: var(--color-primary); font-weight: 700; }
 .badge-low  { color: var(--color-warning); font-weight: 700; }
@@ -241,13 +197,6 @@ function confidenceBadge(confidence) {
   font-weight: 500;
 }
 
-.status-badge.reliable {
-  background: #f0fdf4;
-  color: var(--color-success);
-}
-
-.status-badge.unreliable {
-  background: #fff7ed;
-  color: var(--color-warning);
-}
+.status-badge.reliable { background: #f0fdf4; color: var(--color-success); }
+.status-badge.unreliable { background: #fff7ed; color: var(--color-warning); }
 </style>

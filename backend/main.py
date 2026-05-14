@@ -290,10 +290,23 @@ async def predict(
 
     # ---- 7. 解析结果 ----
     proba = proba[0]
+
+    # Top-1
     class_id = int(np.argmax(proba))
     confidence = float(proba[class_id])
     class_name = get_class_name(class_id, class_names)
     reliable = confidence >= CONFIDENCE_THRESHOLD
+
+    # Top-5
+    top5_indices = np.argsort(proba)[::-1][:5]
+    top5 = [
+        {
+            "class_id": int(idx),
+            "class_name": get_class_name(int(idx), class_names),
+            "confidence": round(float(proba[idx]), 4),
+        }
+        for idx in top5_indices
+    ]
 
     return {
         "class_id": class_id,
@@ -303,6 +316,7 @@ async def predict(
         "reliable": reliable,
         "mode": mode,
         "model_name": model_display_name,
+        "top5": top5,
     }
 
 
