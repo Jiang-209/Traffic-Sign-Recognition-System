@@ -20,6 +20,7 @@ from pathlib import Path
 import numpy as np
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from config import (
@@ -411,3 +412,75 @@ async def submit_feedback(
         "success": True,
         "message": "Feedback submitted. Thank you!",
     }
+
+
+# ============================================================
+# 接口：GET /signs-data  交通标志大全数据
+# ============================================================
+SIGNS_DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "交通标志大全"
+SIGNS_JSON_PATH = SIGNS_DATA_DIR / "traffic_signs.json"
+SIGNS_IMAGES_DIR = SIGNS_DATA_DIR / "images"
+
+# TSRD 58 类名称列表（用于标注是否支持识别）
+_TSRD_NAMES = {
+    "限制速度5km/h", "限制速度15km/h", "限制速度30km/h", "限制速度40km/h",
+    "限制速度50km/h", "限制速度60km/h", "限制速度70km/h", "限制速度80km/h",
+    "禁止直行和向左转弯", "禁止直行和向右转弯", "禁止直行", "禁止向左转弯",
+    "禁止向左向右转弯", "禁止向右转弯", "禁止超车", "禁止掉头",
+    "禁止机动车驶入", "禁止鸣喇叭", "解除限制速度40km/h", "解除限制速度50km/h",
+    "直行和向右转弯", "直行", "向左转弯", "向左和向右转弯", "向右转弯",
+    "靠左侧车道行驶", "靠右侧车道行驶", "环岛行驶", "机动车行驶", "鸣喇叭",
+    "非机动车行驶", "允许掉头", "注意合流", "注意信号灯", "注意危险",
+    "注意行人", "注意非机动车", "注意儿童", "向右急弯路", "向左急弯路",
+    "下陡坡", "上陡坡", "减速慢行", "右侧T形交叉", "左侧T形交叉",
+    "村庄", "反向弯路", "无人看守铁路道口", "施工", "连续弯路",
+    "有人看守铁路道口", "事故易发路段", "停车让行", "禁止通行",
+    "禁止停车", "禁止驶入", "减速让行", "停车检查",
+}
+
+
+def _match_tsrd(sign_name: str) -> bool:
+    """判断一个交通标志名称是否在 TSRD 58 类中（模糊匹配）"""
+    if sign_name in _TSRD_NAMES:
+        return True
+    # 尝试去掉 "标志" 后缀再匹配
+    cleaned = sign_name.replace("标志", "").replace("（", "(").replace("）", ")")
+    if cleaned in _TSRD_NAMES:
+        return True
+    return False
+
+
+print("[SETUP] Loading traffic signs data...")
+if SIGNS_JSON_PATH.exists():
+    with open(SIGNS_JSON_PATH, "r", encoding="utf-8") as f:
+        _raw_signs = json.load(f)
+    print(f"[SETUP] Loaded {len(_raw_signs)} signs from JSON")
+
+    for s in _raw_signs:
+        s["image_file"] = f"{s['category']}_{s['name']}.png"
+        s["in_tsrd"] = _match_tsrd(s["name"])
+    print(f"[SETUP] in_tsrd annotations added to {sum(1 for s in _raw_signs if s['in_tsrd'])}/{len(_raw_signs)} signs")
+else:
+    print(f"[SETUP] SIGNS JSON NOT FOUND at: {SIGNS_JSON_PATH}")
+
+# 挂载交通标志图片目录
+print(f"[SETUP] Checking images dir: {SIGNS_IMAGES_DIR}")
+if SIGNS_IMAGES_DIR.exists():
+    try:
+        app.mount("/signs-images", StaticFiles(directory=str(SIGNS_IMAGES_DIR)), name="signs_images")
+        print(f"[SETUP] Signs images mounted: {SIGNS_IMAGES_DIR}")
+    except Exception as e:
+        print(f"[SETUP] Failed to mount signs images: {e}")
+else:
+    print(f"[SETUP] Images dir NOT FOUND")
+
+print("[SETUP] Registering /signs-data endpoint...")
+@app.get("/signs-data")
+async def get_signs_data():
+    """返回交通标志大全数据"""
+    if not SIGNS_JSON_PATH.exists():
+        raise HTTPException(status_code=404, detail="交通标志数据文件未找到")
+    try:
+        return _raw_signs
+    except NameError:
+        raise HTTPException(status_code=500, detail="交通标志数据未加载")
