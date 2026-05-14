@@ -66,7 +66,6 @@
           <div v-if="roiRect.display" class="roi-handle roi-handle-sw" />
           <div v-if="roiRect.display" class="roi-handle roi-handle-se" />
 
-          <div v-if="isDrawing" class="roi-draw-hint">松开鼠标完成框选</div>
         </div>
 
         <!-- 换图按钮（替代原来的 hover 遮罩） -->
@@ -77,6 +76,15 @@
           </svg>
         </div>
       </div>
+    </div>
+
+    <!-- 框选提示 -->
+    <div v-if="isDrawing" class="roi-draw-hint">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+        <line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/>
+      </svg>
+      <span>松开鼠标完成框选</span>
     </div>
 
     <!-- ROI 状态提示 -->
@@ -565,18 +573,15 @@ function handleReset() {
 .roi-handle-se { bottom: -5px; right: -5px; }
 
 .roi-draw-hint {
-  position: absolute;
-  bottom: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.65);
-  color: #fff;
-  font-size: 0.78rem;
-  padding: 4px 14px;
-  border-radius: 4px;
-  pointer-events: none;
-  white-space: nowrap;
-  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
 }
 
 /* ===== 换图按钮 ===== */
