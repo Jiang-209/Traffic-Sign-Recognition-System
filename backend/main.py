@@ -484,3 +484,49 @@ async def get_signs_data():
         return _raw_signs
     except NameError:
         raise HTTPException(status_code=500, detail="交通标志数据未加载")
+
+
+# ============================================================
+# 接口：POST /help-feedback  帮助反馈
+# ============================================================
+_HELP_FEEDBACK_DIR = Path(__file__).resolve().parent / "help_feedback"
+_HELP_FEEDBACK_CSV = _HELP_FEEDBACK_DIR / "help_feedback.csv"
+_HELP_IMAGES_DIR = _HELP_FEEDBACK_DIR / "images"
+
+
+@app.on_event("startup")
+def _init_help_feedback():
+    _HELP_FEEDBACK_DIR.mkdir(parents=True, exist_ok=True)
+    _HELP_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+    if not _HELP_FEEDBACK_CSV.exists():
+        import csv
+        with open(_HELP_FEEDBACK_CSV, "w", newline="", encoding="utf-8-sig") as f:
+            csv.writer(f).writerow(["created_time", "contact", "content", "page", "saved_image_path"])
+
+
+@app.post("/help-feedback")
+async def submit_help_feedback(
+    contact: str = Form(default=""),
+    content: str = Form(...),
+    page: str = Form(default=""),
+    image: UploadFile = File(default=None),
+):
+    """用户帮助反馈"""
+    now = time.strftime("%Y-%m-%d %H:%M:%S")
+    saved_path = ""
+
+    if image is not None and image.filename:
+        try:
+            safe_name = f"{time.strftime('%Y%m%d_%H%M%S')}_{image.filename}"
+            img_path = _HELP_IMAGES_DIR / safe_name
+            with open(img_path, "wb") as f:
+                f.write(await image.read())
+            saved_path = f"images/{safe_name}"
+        except Exception:
+            pass
+
+    import csv
+    with open(_HELP_FEEDBACK_CSV, "a", newline="", encoding="utf-8-sig") as f:
+        csv.writer(f).writerow([now, contact, content, page, saved_path])
+
+    return {"success": True, "message": "反馈已提交，谢谢！"}

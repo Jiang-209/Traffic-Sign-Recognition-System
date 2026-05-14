@@ -1,0 +1,80 @@
+2026-05-15 03:22:24.348801: I tensorflow/core/util/port.cc:113] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING:tensorflow:From C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\keras\src\losses.py:2976: The name tf.losses.sparse_softmax_cross_entropy is deprecated. Please use tf.compat.v1.losses.sparse_softmax_cross_entropy instead.
+
+WARNING:tensorflow:From E:\TSRScnn\diploma project1\backend\model_loader.py:11: The name tf.disable_v2_behavior is deprecated. Please use tf.compat.v1.disable_v2_behavior instead.
+
+WARNING:tensorflow:From C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\tensorflow\python\compat\v2_compat.py:108: disable_resource_variables (from tensorflow.python.ops.variable_scope) is deprecated and will be removed in a future version.
+Instructions for updating:
+non-resource variables are not supported in the long term
+INFO:     Started server process [16712]
+INFO:     Waiting for application startup.
+2026-05-15 03:22:31.322450: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE SSE2 SSE3 SSE4.1 SSE4.2 AVX2 AVX_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+WARNING:tensorflow:From E:\TSRScnn\diploma project1\backend\model_loader.py:66: The name tf.train.import_meta_graph is deprecated. Please use tf.compat.v1.train.import_meta_graph instead.
+
+2026-05-15 03:22:31.409669: I tensorflow/compiler/mlir/mlir_graph_optimization_pass.cc:388] MLIR V1 optimization pass is not enabled
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+[SETUP] Loading traffic signs data...
+[SETUP] Loaded 288 signs from JSON
+[SETUP] in_tsrd annotations added to 45/288 signs
+[SETUP] Checking images dir: E:\TSRScnn\diploma project1\data\交通标志大全\images
+[SETUP] Signs images mounted: E:\TSRScnn\diploma project1\data\交通标志大全\images
+[SETUP] Registering /signs-data endpoint...
+==================================================
+[STARTUP] Starting traffic sign recognition backend service...
+[STARTUP] Class names loaded: 58 classes
+[INFO] Loading model: E:\TSRScnn\diploma project1\backend\..\tsrd_runs\scratch_20260513_051658\checkpoints\best\tsrd_scratch_best
+[INFO] Model loaded successfully
+[STARTUP] TSRD Model loaded successfully
+[INFO] Loading model: E:\TSRScnn\diploma project1\backend\..\tsrd_runs\scratch_phase3_3_20260514_024532\checkpoints\best\tsrd_scratch_best
+[INFO] Model loaded successfully
+[STARTUP] TSRD-ROI Model loaded successfully
+[STARTUP] 2/2 models loaded
+==================================================
+INFO:     127.0.0.1:18637 - "POST /help-feedback HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\uvicorn\protocols\http\h11_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 56, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\fastapi\applications.py", line 1159, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\starlette\applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\starlette\routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\starlette\routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\starlette\routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\fastapi\routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\fastapi\routing.py", line 120, in app
+    response = await f(request)
+  File "C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\fastapi\routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\Lenovo\.conda\envs\tsrd_tf2\lib\site-packages\fastapi\routing.py", line 328, in run_endpoint_function
+    return await dependant.call(**values)
+  File "E:\TSRScnn\diploma project1\backend\main.py", line 515, in submit_help_feedback
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+NameError: name 'datetime' is not defined

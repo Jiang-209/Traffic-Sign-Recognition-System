@@ -111,9 +111,114 @@
           <li><strong>模型架构：</strong>CNN 卷积神经网络</li>
         </ul>
       </div>
+
+      <!-- 帮助反馈 -->
+      <div class="info-card span-2">
+        <h3 class="info-card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/>
+          </svg>
+          帮助与反馈
+        </h3>
+        <div class="help-feedback">
+          <p class="feedback-desc">遇到问题或有改进建议？请填写以下表单，我们会尽快处理。</p>
+          <div class="feedback-form">
+            <div class="fb-field">
+              <label class="fb-label">问题描述 <span class="required">*</span></label>
+              <textarea
+                v-model="helpContent"
+                class="fb-textarea"
+                placeholder="请详细描述您遇到的问题或改进建议..."
+                rows="3"
+                maxlength="1000"
+              ></textarea>
+              <span class="fb-char-count">{{ helpContent.length }}/1000</span>
+            </div>
+            <div class="fb-row">
+              <div class="fb-field fb-field-sm">
+                <label class="fb-label">联系方式</label>
+                <input v-model="helpContact" class="fb-input" placeholder="邮箱 / QQ / 微信（选填）" />
+              </div>
+              <div class="fb-field fb-field-sm">
+                <label class="fb-label">所在页面</label>
+                <select v-model="helpPage" class="fb-select">
+                  <option value="">-- 请选择（选填） --</option>
+                  <option value="图片识别">图片识别</option>
+                  <option value="摄像头识别">摄像头识别</option>
+                  <option value="批量识别">批量识别</option>
+                  <option value="交通标志大全">交通标志大全</option>
+                  <option value="历史记录">历史记录</option>
+                  <option value="系统说明">系统说明</option>
+                </select>
+              </div>
+            </div>
+            <div class="fb-field">
+              <label class="fb-label">截图（选填）</label>
+              <div class="fb-upload" @click="triggerImageUpload">
+                <span v-if="!helpImage">点击上传截图</span>
+                <span v-else class="fb-upload-name">{{ helpImage.name }}</span>
+                <button v-if="helpImage" type="button" class="fb-remove-img" @click.stop="helpImage = null">&times;</button>
+              </div>
+            </div>
+            <div class="fb-actions">
+              <span v-if="helpStatus" class="fb-status" :class="helpStatus.type">{{ helpStatus.text }}</span>
+              <button class="fb-submit" :disabled="!helpContent.trim() || helpSubmitting" @click="submitHelp">
+                {{ helpSubmitting ? '提交中...' : '提交反馈' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
+
+<script setup>
+import { ref } from 'vue'
+import { apiClient } from '../api/predict.js'
+
+const helpContent = ref('')
+const helpContact = ref('')
+const helpPage = ref('')
+const helpImage = ref(null)
+const helpSubmitting = ref(false)
+const helpStatus = ref(null)
+
+function triggerImageUpload() {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.jpg,.jpeg,.png'
+  input.onchange = (e) => {
+    if (e.target.files[0]) helpImage.value = e.target.files[0]
+  }
+  input.click()
+}
+
+async function submitHelp() {
+  if (!helpContent.value.trim() || helpSubmitting.value) return
+  helpSubmitting.value = true
+  helpStatus.value = null
+
+  try {
+    const form = new FormData()
+    form.append('content', helpContent.value.trim())
+    form.append('contact', helpContact.value)
+    form.append('page', helpPage.value)
+    if (helpImage.value) form.append('image', helpImage.value)
+
+    await apiClient.post('/help-feedback', form)
+    helpStatus.value = { type: 'success', text: '反馈已提交，谢谢！' }
+    helpContent.value = ''
+    helpContact.value = ''
+    helpPage.value = ''
+    helpImage.value = null
+  } catch (e) {
+    helpStatus.value = { type: 'error', text: '提交失败，请稍后重试' }
+  } finally {
+    helpSubmitting.value = false
+  }
+}
+</script>
 
 <style scoped>
 .info-page { display: flex; flex-direction: column; gap: 20px; }
@@ -202,4 +307,57 @@
 @media (max-width: 860px) {
   .info-grid { grid-template-columns: 1fr; }
 }
+
+/* 帮助反馈 */
+.help-feedback { font-size: 0.88rem; }
+.feedback-desc { color: var(--color-text-secondary); margin: 0 0 14px; line-height: 1.6; }
+
+.feedback-form { display: flex; flex-direction: column; gap: 12px; }
+.fb-field { display: flex; flex-direction: column; gap: 4px; position: relative; }
+.fb-label { font-size: 0.8rem; font-weight: 600; color: var(--color-text); }
+.required { color: var(--color-danger); }
+.fb-textarea {
+  padding: 8px 10px; border: 1.5px solid var(--color-border); border-radius: 6px;
+  font-size: 0.88rem; font-family: inherit; color: var(--color-text);
+  resize: vertical; min-height: 60px;
+  transition: border-color var(--transition);
+}
+.fb-textarea:focus { outline: none; border-color: var(--color-primary); }
+.fb-char-count { position: absolute; right: 6px; bottom: -18px; font-size: 0.72rem; color: #94a3b8; }
+
+.fb-row { display: flex; gap: 12px; }
+.fb-field-sm { flex: 1; }
+.fb-input, .fb-select {
+  padding: 7px 10px; border: 1.5px solid var(--color-border); border-radius: 6px;
+  font-size: 0.85rem; font-family: inherit; color: var(--color-text); background: #fff;
+  transition: border-color var(--transition);
+}
+.fb-input:focus, .fb-select:focus { outline: none; border-color: var(--color-primary); }
+
+.fb-upload {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border: 1.5px dashed var(--color-border); border-radius: 6px;
+  cursor: pointer; font-size: 0.82rem; color: #94a3b8;
+  transition: all var(--transition);
+}
+.fb-upload:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.fb-upload-name { color: var(--color-text); font-weight: 500; flex: 1; }
+.fb-remove-img {
+  background: none; border: none; color: var(--color-danger); font-size: 1.1rem;
+  cursor: pointer; line-height: 1; padding: 0 2px;
+}
+
+.fb-actions { display: flex; align-items: center; gap: 12px; margin-top: 2px; }
+.fb-submit {
+  padding: 8px 22px; border: none; border-radius: 6px;
+  background: var(--color-primary); color: #fff;
+  font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  transition: background var(--transition);
+}
+.fb-submit:hover:not(:disabled) { background: var(--color-primary-dark); }
+.fb-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.fb-status { font-size: 0.82rem; padding: 4px 10px; border-radius: 4px; }
+.fb-status.success { background: #f0fdf4; color: var(--color-success); }
+.fb-status.error { background: #fef2f2; color: var(--color-danger); }
 </style>
