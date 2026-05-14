@@ -50,6 +50,7 @@
             :class="{ 'has-error': validationError }"
           >
             <option :value="null" disabled>-- 请选择正确类别 --</option>
+            <option :value="-1">无正确类别</option>
             <option
               v-for="cls in CLASS_NAMES"
               :key="cls.id"
@@ -169,12 +170,16 @@ async function handleSubmit() {
   isSubmitting.value = true
 
   try {
+    // 当选择"无正确类别"时，使用特殊名称
+    const isNoCorrectClass = correctClassId.value === -1
     const feedbackData = {
       image_name: props.imageFile?.name || 'unknown.png',
       predicted_class_id: props.result.class_id,
       predicted_class_name: props.result.class_name,
       correct_class_id: correctClassId.value,
-      correct_class_name: CLASS_NAMES.find(c => c.id === correctClassId.value)?.name || 'Unknown',
+      correct_class_name: isNoCorrectClass
+        ? '无正确类别'
+        : (CLASS_NAMES.find(c => c.id === correctClassId.value)?.name || 'Unknown'),
       confidence: props.result.confidence,
       remark: remark.value.trim(),
     }

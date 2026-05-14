@@ -13,7 +13,7 @@ export default defineConfig({
     // 这样前端无需处理跨域问题（开发时）
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: 'http://127.0.0.1:8001',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },

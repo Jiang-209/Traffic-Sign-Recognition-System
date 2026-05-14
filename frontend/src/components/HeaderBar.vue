@@ -22,7 +22,6 @@
       <div class="header-status" :class="{ online: backendOnline }">
         <span class="status-dot"></span>
         <span class="status-text">{{ backendOnline ? '后端已连接' : '后端未连接' }}</span>
-        <span v-if="modelName" class="model-name">{{ modelName }}</span>
       </div>
     </div>
   </header>
@@ -33,7 +32,6 @@ import { ref, onMounted } from 'vue'
 import { checkHealth } from '../api/predict.js'
 
 const backendOnline = ref(false)
-const modelName = ref('')
 
 /**
  * 启动时检测后端健康状态
@@ -42,10 +40,8 @@ onMounted(async () => {
   try {
     const res = await checkHealth()
     backendOnline.value = res.status === 'ok' && res.model_loaded === true
-    modelName.value = res.model_name || ''
   } catch {
     backendOnline.value = false
-    modelName.value = ''
   }
 })
 </script>
@@ -124,14 +120,5 @@ onMounted(async () => {
 
 .status-text {
   white-space: nowrap;
-}
-
-.model-name {
-  margin-left: 4px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.15);
-  font-size: 0.75rem;
-  font-weight: 500;
 }
 </style>

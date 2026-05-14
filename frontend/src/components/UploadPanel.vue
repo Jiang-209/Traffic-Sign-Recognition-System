@@ -1,6 +1,6 @@
 <!--
   UploadPanel.vue - 图片上传面板
-  支持点击上传、拖拽上传、图片预览
+  支持点击上传、拖拽上传、图片预览、ROI 框选识别
 -->
 <template>
   <div class="upload-panel">
@@ -32,18 +32,61 @@
         <p class="upload-hint">点击或拖拽图片到此处</p>
         <p class="upload-limit">支持 JPG、JPEG、PNG 格式</p>
       </div>
-      <!-- 已选择图片 - 预览 -->
-      <div v-else class="preview-container">
-        <img :src="previewUrl" alt="预览图片" class="preview-image" />
-        <!-- 换图遮罩 -->
-        <div class="preview-overlay" @click.stop="triggerFileInput">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+      <!-- 已选择图片 - 预览 + ROI 框选 -->
+      <div v-else class="preview-container-inner" @click.stop>
+        <img
+          ref="previewImgRef"
+          :src="previewUrl"
+          alt="预览图片"
+          class="preview-image"
+          @load="onImageLoaded"
+          draggable="false"
+        />
+
+        <!-- ROI 交互层 -->
+        <div
+          class="roi-layer"
+          @mousedown.prevent="onRoiMouseDown"
+          @mousemove.prevent="onRoiMouseMove"
+          @mouseup.prevent="onRoiMouseUp"
+          @mouseleave="onRoiMouseUp"
+        >
+          <!-- ROI 选框 -->
+          <div v-if="roiRect.display" class="roi-box" :style="roiBoxStyle">
+            <svg class="roi-clear-icon" viewBox="0 0 20 20" @mousedown.stop="clearRoi">
+              <circle cx="10" cy="10" r="8" fill="#dc2626" opacity="0.9"/>
+              <line x1="7" y1="7" x2="13" y2="13" stroke="#fff" stroke-width="2"/>
+              <line x1="13" y1="7" x2="7" y2="13" stroke="#fff" stroke-width="2"/>
+            </svg>
+          </div>
+
+          <div v-if="roiRect.display" class="roi-handle roi-handle-nw" />
+          <div v-if="roiRect.display" class="roi-handle roi-handle-ne" />
+          <div v-if="roiRect.display" class="roi-handle roi-handle-sw" />
+          <div v-if="roiRect.display" class="roi-handle roi-handle-se" />
+
+          <div v-if="isDrawing" class="roi-draw-hint">松开鼠标完成框选</div>
+        </div>
+
+        <!-- 换图按钮（替代原来的 hover 遮罩） -->
+        <div class="reload-btn" title="重新选择图片" @click.stop="triggerFileInput">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
             <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
           </svg>
-          <span>更换图片</span>
         </div>
       </div>
+    </div>
+
+    <!-- ROI 状态提示 -->
+    <div v-if="roiRect.display && !isDrawing" class="roi-status">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+        <line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/>
+      </svg>
+      <span>已框选 ROI 区域（{{ roiRect.w_orig }}×{{ roiRect.h_orig }}px）</span>
+      <button class="roi-clear-btn" @click="clearRoi">清除</button>
     </div>
 
     <!-- 隐藏的文件输入 -->
@@ -58,7 +101,6 @@
     <!-- 操作按钮 -->
     <div class="upload-actions">
       <button class="btn btn-primary" :disabled="!previewUrl || isUploading" @click="handlePredict">
-        <!-- Loading 旋转图标 -->
         <span v-if="isUploading" class="btn-spinner"></span>
         <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -75,6 +117,21 @@
       </button>
     </div>
 
+    <!-- 模式提示 -->
+    <div v-if="previewUrl && roiRect.display" class="mode-hint mode-roi">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+      </svg>
+      将使用 <strong>TSRD-ROI Model</strong> 识别框选区域
+    </div>
+    <div v-else-if="previewUrl" class="mode-hint mode-batch">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+      未框选 ROI，将使用 <strong>TSRD Model</strong> 识别整张图片
+      <span class="mode-hint-action">（在图片上拖拽框选可启用 ROI 识别）</span>
+    </div>
+
     <!-- 错误提示 -->
     <Transition name="fade">
       <div v-if="errorMsg" class="error-toast" @click="errorMsg = ''">
@@ -89,71 +146,225 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const emit = defineEmits(['predict-start', 'predict-success', 'predict-error', 'reset', 'file-selected'])
 
 // ===== 状态 =====
 const fileInputRef = ref(null)
-const previewUrl = ref(null)       // 图片预览 URL
-const selectedFile = ref(null)     // 当前选中的文件
-const isUploading = ref(false)     // 是否正在上传识别
-const isDragover = ref(false)      // 拖拽悬停状态
-const errorMsg = ref('')           // 错误消息
+const previewUrl = ref(null)
+const selectedFile = ref(null)
+const isUploading = ref(false)
+const isDragover = ref(false)
+const errorMsg = ref('')
 
-// 允许的文件类型
+// ROI 相关状态
+const previewImgRef = ref(null)
+const imageLoaded = ref(false)
+const naturalSize = ref({ w: 0, h: 0 })
+const isDrawing = ref(false)
+const isDragging = ref(false)
+const roiStart = ref({ x: 0, y: 0 })
+const roiCurrent = ref({ x: 0, y: 0 })
+const roiFinal = ref(null)   // { x1, y1, x2, y2 } in original image coords
+
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/jpg']
 
-// ===== 方法 =====
+// ===== ROI 计算 =====
 
-/** 触发隐藏的文件选择器 */
-function triggerFileInput() {
-  if (isUploading.value) return
-  fileInputRef.value?.click()
+/** 获取图片在 display 中的实际渲染区域（处理 object-fit: contain） */
+function getImageRenderInfo() {
+  const img = previewImgRef.value
+  if (!img) return null
+  const rect = img.getBoundingClientRect()
+  const natW = img.naturalWidth
+  const natH = img.naturalHeight
+  const elW = rect.width
+  const elH = rect.height
+  const imgAspect = natW / natH
+  const elAspect = elW / elH
+
+  let renderW, renderH, offsetX, offsetY
+  if (elAspect > imgAspect) {
+    renderH = elH
+    renderW = renderH * imgAspect
+    offsetX = (elW - renderW) / 2
+    offsetY = 0
+  } else {
+    renderW = elW
+    renderH = renderW / imgAspect
+    offsetX = 0
+    offsetY = (elH - renderH) / 2
+  }
+  return { rect, renderW, renderH, offsetX, offsetY, natW, natH }
 }
 
-/** 处理文件选择 */
-function handleFileSelect(e) {
-  const file = e.target.files?.[0]
-  if (file) processFile(file)
-  // 清空 input 以允许重复选择同一文件
-  e.target.value = ''
+/** 将鼠标 clientX/Y 转换到原始图像坐标 */
+function clientToOriginal(cx, cy) {
+  const info = getImageRenderInfo()
+  if (!info) return null
+  const { rect, renderW, renderH, offsetX, offsetY, natW, natH } = info
+  const relX = cx - rect.left - offsetX
+  const relY = cy - rect.top - offsetY
+  const x = Math.round((relX / renderW) * natW)
+  const y = Math.round((relY / renderH) * natH)
+  return { x: Math.max(0, Math.min(natW - 1, x)),
+           y: Math.max(0, Math.min(natH - 1, y)) }
 }
 
-/** 处理拖拽上传 */
-function handleDrop(e) {
-  isDragover.value = false
-  const file = e.dataTransfer.files?.[0]
-  if (file) processFile(file)
+/** 将原始图像坐标转换到父容器内的 display 坐标 */
+function originalToDisplay(ox, oy) {
+  const info = getImageRenderInfo()
+  if (!info) return { x: 0, y: 0 }
+  const { renderW, renderH, offsetX, offsetY, natW, natH } = info
+  return {
+    x: offsetX + (ox / natW) * renderW,
+    y: offsetY + (oy / natH) * renderH,
+  }
 }
 
-/** 验证并处理文件 */
+// ===== ROI 选框状态 =====
+
+/** 当前 ROI 的 display 坐标（用于渲染选框） */
+const roiRect = computed(() => {
+  if (isDrawing.value) {
+    return buildRoiRect(roiStart.value, roiCurrent.value)
+  }
+  if (roiFinal.value) {
+    return buildRoiRect(
+      { x: roiFinal.value.x1, y: roiFinal.value.y1, isOriginal: true },
+      { x: roiFinal.value.x2, y: roiFinal.value.y2, isOriginal: true },
+    )
+  }
+  return { display: false }
+})
+
+function buildRoiRect(p1, p2) {
+  // 转换到原始坐标
+  const a = p1.isOriginal ? p1 : clientToOriginal(p1.x, p1.y)
+  const b = p2.isOriginal ? p2 : clientToOriginal(p2.x, p2.y)
+  if (!a || !b) return { display: false }
+
+  const x1 = Math.min(a.x, b.x)
+  const y1 = Math.min(a.y, b.y)
+  const x2 = Math.max(a.x, b.x)
+  const y2 = Math.max(a.y, b.y)
+
+  // 转到 display 坐标
+  const d1 = originalToDisplay(x1, y1)
+  const d2 = originalToDisplay(x2, y2)
+
+  return {
+    display: true,
+    left: d1.x,
+    top: d1.y,
+    w: d2.x - d1.x,
+    h: d2.y - d1.y,
+    w_orig: x2 - x1,
+    h_orig: y2 - y1,
+  }
+}
+
+const roiBoxStyle = computed(() => {
+  const r = roiRect.value
+  if (!r || !r.display) return {}
+  return {
+    left: r.left + 'px',
+    top: r.top + 'px',
+    width: r.w + 'px',
+    height: r.h + 'px',
+  }
+})
+
+// ===== 图片加载 =====
+
+function onImageLoaded() {
+  const img = previewImgRef.value
+  if (img) {
+    naturalSize.value = { w: img.naturalWidth, h: img.naturalHeight }
+    imageLoaded.value = true
+  }
+}
+
 function processFile(file) {
   errorMsg.value = ''
-
-  // 类型校验
   if (!ALLOWED_TYPES.includes(file.type)) {
     errorMsg.value = '仅支持 JPG、JPEG、PNG 格式的图片'
     return
   }
-
-  // 大小校验（最大 20MB）
   if (file.size > 20 * 1024 * 1024) {
     errorMsg.value = '图片大小不能超过 20MB'
     return
   }
 
   selectedFile.value = file
-
-  // 通知父组件文件已选择（用于反馈面板）
+  roiFinal.value = null
+  imageLoaded.value = false
   emit('file-selected', file)
 
-  // 生成预览 URL（释放旧 URL）
   if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
   previewUrl.value = URL.createObjectURL(file)
 }
 
-/** 开始识别 */
+// ===== ROI 鼠标事件 =====
+
+function onRoiMouseDown(e) {
+  if (e.button !== 0) return
+  isDrawing.value = true
+  isDragging.value = false
+  roiStart.value = { x: e.clientX, y: e.clientY }
+  roiCurrent.value = { x: e.clientX, y: e.clientY }
+}
+
+function onRoiMouseMove(e) {
+  if (!isDrawing.value) return
+  isDragging.value = true
+  roiCurrent.value = { x: e.clientX, y: e.clientY }
+}
+
+function onRoiMouseUp() {
+  if (!isDrawing.value) return
+  isDrawing.value = false
+
+  if (isDragging.value) {
+    const a = clientToOriginal(roiStart.value.x, roiStart.value.y)
+    const b = clientToOriginal(roiCurrent.value.x, roiCurrent.value.y)
+    if (a && b) {
+      const x1 = Math.min(a.x, b.x), y1 = Math.min(a.y, b.y)
+      const x2 = Math.max(a.x, b.x), y2 = Math.max(a.y, b.y)
+      if (x2 - x1 >= 5 && y2 - y1 >= 5) {
+        roiFinal.value = { x1, y1, x2, y2 }
+      }
+    }
+  }
+  isDragging.value = false
+}
+
+function clearRoi() {
+  roiFinal.value = null
+}
+
+// ===== 文件选择 =====
+
+function triggerFileInput() {
+  if (isUploading.value) return
+  fileInputRef.value?.click()
+}
+
+function handleFileSelect(e) {
+  const file = e.target.files?.[0]
+  if (file) processFile(file)
+  e.target.value = ''
+}
+
+function handleDrop(e) {
+  isDragover.value = false
+  const file = e.dataTransfer.files?.[0]
+  if (file) processFile(file)
+}
+
+// ===== 识别 =====
+
 async function handlePredict() {
   if (!selectedFile.value || isUploading.value) return
 
@@ -162,9 +373,22 @@ async function handlePredict() {
   emit('predict-start')
 
   try {
-    // 动态导入 API（避免循环依赖）
     const { predictImage } = await import('../api/predict.js')
-    const result = await predictImage(selectedFile.value)
+
+    let mode = 'batch'
+    let roiBox = null
+
+    if (roiFinal.value) {
+      mode = 'upload_roi'
+      roiBox = {
+        x1: roiFinal.value.x1,
+        y1: roiFinal.value.y1,
+        x2: roiFinal.value.x2,
+        y2: roiFinal.value.y2,
+      }
+    }
+
+    const result = await predictImage(selectedFile.value, mode, roiBox)
     emit('predict-success', {
       ...result,
       fileName: selectedFile.value.name,
@@ -179,11 +403,12 @@ async function handlePredict() {
   }
 }
 
-/** 重置选择 */
 function handleReset() {
   if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
   previewUrl.value = null
   selectedFile.value = null
+  imageLoaded.value = false
+  roiFinal.value = null
   errorMsg.value = ''
   emit('file-selected', null)
   emit('reset')
@@ -210,7 +435,7 @@ function handleReset() {
   color: var(--color-text);
 }
 
-/* 上传区域 */
+/* ===== 上传区域 ===== */
 .upload-zone {
   border: 2px dashed var(--color-border);
   border-radius: var(--radius);
@@ -270,40 +495,182 @@ function handleReset() {
   color: #94a3b8;
 }
 
-/* 预览 */
-.preview-container {
+/* ===== 图片预览容器 ===== */
+.preview-container-inner {
   width: 100%;
   position: relative;
+  line-height: 0;
 }
 
 .preview-image {
   width: 100%;
-  max-height: 320px;
+  max-height: 340px;
   object-fit: contain;
   display: block;
   background: #f8fafc;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
-.preview-overlay {
+/* ===== ROI 交互层 ===== */
+.roi-layer {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  color: #fff;
-  font-size: 0.85rem;
-  opacity: 0;
+  cursor: crosshair;
+  z-index: 5;
+}
+
+/* ROI 选框 */
+.roi-box {
+  position: absolute;
+  border: 2px dashed #2563eb;
+  background: rgba(37, 99, 235, 0.08);
+  pointer-events: none;
+  z-index: 6;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.15);
+}
+
+.roi-clear-icon {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  pointer-events: auto;
+  z-index: 10;
+  opacity: 0.8;
   transition: opacity var(--transition);
 }
 
-.preview-container:hover .preview-overlay {
+.roi-clear-icon:hover {
   opacity: 1;
 }
 
-/* 按钮区 */
+/* ROI 角标 */
+.roi-handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #2563eb;
+  background: #fff;
+  border-radius: 2px;
+  z-index: 7;
+  pointer-events: none;
+}
+
+.roi-handle-nw { top: -5px; left: -5px; }
+.roi-handle-ne { top: -5px; right: -5px; }
+.roi-handle-sw { bottom: -5px; left: -5px; }
+.roi-handle-se { bottom: -5px; right: -5px; }
+
+.roi-draw-hint {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 0.78rem;
+  padding: 4px 14px;
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 8;
+}
+
+/* ===== 换图按钮 ===== */
+.reload-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition);
+  z-index: 10;
+}
+
+.preview-container-inner:hover .reload-btn {
+  opacity: 1;
+}
+
+.reload-btn:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* ===== ROI 状态栏 ===== */
+.roi-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  padding: 6px 12px;
+  border-radius: 6px;
+  margin-top: -8px;
+}
+
+.roi-clear-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--color-danger);
+  font-size: 0.78rem;
+  cursor: pointer;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: background var(--transition);
+}
+
+.roi-clear-btn:hover {
+  background: rgba(220, 38, 38, 0.1);
+}
+
+/* ===== 模式提示 ===== */
+.mode-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  padding: 6px 12px;
+  border-radius: 6px;
+  margin-top: -8px;
+}
+
+.mode-roi {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.mode-roi strong {
+  color: #059669;
+}
+
+.mode-batch {
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.mode-batch strong {
+  color: #d97706;
+}
+
+.mode-hint-action {
+  color: #a16207;
+  opacity: 0.75;
+}
+
+/* ===== 按钮区 ===== */
 .upload-actions {
   display: flex;
   gap: 12px;
@@ -352,7 +719,6 @@ function handleReset() {
   background: var(--color-primary-light);
 }
 
-/* 加载旋转动画 */
 .btn-spinner {
   width: 16px;
   height: 16px;
@@ -366,7 +732,7 @@ function handleReset() {
   to { transform: rotate(360deg); }
 }
 
-/* 错误 Toast */
+/* ===== 错误提示 ===== */
 .error-toast {
   background: #fef2f2;
   color: var(--color-danger);

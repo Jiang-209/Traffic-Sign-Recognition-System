@@ -8,14 +8,28 @@ import os
 # ============================================================
 # 模型文件路径（不含扩展名），环境变量可覆盖
 # 支持 TF1 checkpoint 格式（.meta / .index / .data-*）
-MODEL_PATH = os.environ.get(
-    "MODEL_PATH",
+
+# TSRD Model（基线，全图resize，适用于 batch 批量识别）
+MODEL_PATH_TSRD = os.environ.get(
+    "MODEL_PATH_TSRD",
     os.path.join(os.path.dirname(__file__), "..",
-                 "tsrd_runs", "scratch_20260513_051658", 
+                 "tsrd_runs", "scratch_20260513_051658",
                  "checkpoints", "best", "tsrd_scratch_best")
 )
 
+# TSRD-ROI Model（ROI裁剪预处理，适用于 upload_roi / camera_roi）
+MODEL_PATH_ROI = os.environ.get(
+    "MODEL_PATH_ROI",
+    os.path.join(os.path.dirname(__file__), "..",
+                 "tsrd_runs", "scratch_phase3_3_20260514_024532",
+                 "checkpoints", "best", "tsrd_scratch_best")
+)
 
+# 向后兼容：单模型模式仍可用 MODEL_PATH 环境变量覆盖
+MODEL_PATH = os.environ.get(
+    "MODEL_PATH",
+    MODEL_PATH_TSRD
+)
 
 # 输入图像尺寸（必须与训练时一致）
 IMG_HEIGHT = 32
@@ -41,9 +55,11 @@ ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png"}
 # ============================================================
 # 模型显示名称
 # ============================================================
-# 当前加载模型的显示名称（前端可见）
-# 可选值: "TSRD Model"（基线，全图resize）、"TSRD-ROI Model"（ROI裁剪）
-MODEL_NAME = "TSRD Model"
+MODEL_NAME_TSRD = "TSRD Model"          # 基线，全图 resize
+MODEL_NAME_ROI = "TSRD-ROI Model"       # ROI 裁剪预处理
+
+# 向后兼容：整体服务默认显示名
+MODEL_NAME = MODEL_NAME_TSRD
 
 # ============================================================
 # 类别名称文件路径

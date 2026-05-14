@@ -2,12 +2,19 @@
 FastAPI 主程序
 提供交通标志识别的后端接口：
 - GET  /health    健康检查
-- POST /predict   图片识别
+- POST /predict   图片识别（支持多模型自动切换）
 - GET  /classes   获取类别列表
 - POST /feedback  用户反馈提交
+
+多模型模式：
+  - mode=batch          → TSRD Model（全图 resize）
+  - mode=upload_roi     → TSRD-ROI Model（用户框选 ROI）
+  - mode=camera_roi     → TSRD-ROI Model（摄像头 ROI）
+  - mode 缺失/其他       → 默认走 TSRD Model（向后兼容）
 """
 import json
 import time
+from typing import Optional
 from pathlib import Path
 
 import numpy as np
@@ -19,8 +26,10 @@ from config import (
     API_TITLE,
     API_VERSION,
     API_DESCRIPTION,
-    MODEL_PATH,
-    MODEL_NAME,
+    MODEL_PATH_TSRD,
+    MODEL_PATH_ROI,
+    MODEL_NAME_TSRD,
+    MODEL_NAME_ROI,
     IMG_HEIGHT,
     IMG_WIDTH,
     IMG_CHANNELS,
@@ -29,7 +38,7 @@ from config import (
     CLASS_NAMES_CSV,
 )
 from model_loader import ModelLoader
-from preprocess import preprocess_image
+from preprocess import preprocess_image, preprocess_image_roi
 from class_names import load_class_names, get_class_name
 from feedback_handler import init_feedback_dir, save_feedback
 
@@ -42,7 +51,7 @@ class FeedbackData(BaseModel):
     image_name: str = Field(..., description="原始图片文件名")
     predicted_class_id: int = Field(..., ge=0, le=57, description="模型预测的类别 ID")
     predicted_class_name: str = Field(..., description="模型预测的类别名称")
-    correct_class_id: int = Field(..., ge=0, le=57, description="用户修正的类别 ID")
+    correct_class_id: int = Field(..., description="用户修正的类别 ID（-1 表示无正确类别）")
     correct_class_name: str = Field(..., description="用户修正的类别名称")
     confidence: float = Field(..., ge=0.0, le=1.0, description="模型预测置信度")
     remark: str = Field(default="", description="用户备注")
@@ -68,16 +77,24 @@ app.add_middleware(
 # ============================================================
 # 全局变量（应用启动时初始化）
 # ============================================================
-model: ModelLoader = None
+model_tsrd: ModelLoader = None      # TSRD Model（batch 模式）
+model_tsrd_roi: ModelLoader = None  # TSRD-ROI Model（upload_roi / camera_roi 模式）
 class_names: dict = {}
+
+# mode -> (model_loader_var, model_name, use_roi_preprocess)
+MODE_ROUTING = {
+    "batch":       ("model_tsrd",    MODEL_NAME_TSRD, False),
+    "upload_roi":  ("model_tsrd_roi", MODEL_NAME_ROI,  True),
+    "camera_roi":  ("model_tsrd_roi", MODEL_NAME_ROI,  True),
+}
 
 # ============================================================
 # 应用启动与关闭事件
 # ============================================================
 @app.on_event("startup")
 def startup():
-    """应用启动时：加载模型与类别名称"""
-    global model, class_names
+    """应用启动时：加载两个模型与类别名称"""
+    global model_tsrd, model_tsrd_roi, class_names
 
     print("=" * 50)
     print("[STARTUP] Starting traffic sign recognition backend service...")
@@ -86,33 +103,44 @@ def startup():
     class_names = load_class_names(CLASS_NAMES_CSV)
     print(f"[STARTUP] Class names loaded: {len(class_names)} classes")
 
-    # 加载模型
-    model = ModelLoader(
-        model_path=MODEL_PATH,
-        img_height=IMG_HEIGHT,
-        img_width=IMG_WIDTH,
-        img_channels=IMG_CHANNELS,
-    )
-    try:
-        model.load_model()
-    except FileNotFoundError as e:
-        print(f"[STARTUP] Model load failed: {e}")
-        print("[STARTUP] Service can still start, but /predict will be unavailable")
-    except Exception as e:
-        print(f"[STARTUP] Unknown error during model loading: {e}")
+    def _load_single(name, model_path):
+        """加载单个模型并打印状态"""
+        loader = ModelLoader(
+            model_path=model_path,
+            img_height=IMG_HEIGHT,
+            img_width=IMG_WIDTH,
+            img_channels=IMG_CHANNELS,
+        )
+        try:
+            loader.load_model()
+            print(f"[STARTUP] {name} loaded successfully")
+            return loader
+        except FileNotFoundError as e:
+            print(f"[STARTUP] {name} load failed: {e}")
+            print(f"[STARTUP] {name} will be unavailable")
+        except Exception as e:
+            print(f"[STARTUP] Unknown error loading {name}: {e}")
+        return None
+
+    # 加载 TSRD Model（batch）
+    model_tsrd = _load_single("TSRD Model", MODEL_PATH_TSRD)
+    # 加载 TSRD-ROI Model（upload_roi / camera_roi）
+    model_tsrd_roi = _load_single("TSRD-ROI Model", MODEL_PATH_ROI)
 
     # 初始化反馈目录与 CSV
     init_feedback_dir()
 
+    total = sum(1 for m in [model_tsrd, model_tsrd_roi] if m is not None and m.loaded)
+    print(f"[STARTUP] {total}/2 models loaded")
     print("=" * 50)
 
 
 @app.on_event("shutdown")
 def shutdown():
     """应用关闭时：释放 TF Session"""
-    global model
-    if model is not None:
-        model.close()
+    for name, loader in [("TSRD", model_tsrd), ("TSRD-ROI", model_tsrd_roi)]:
+        if loader is not None:
+            loader.close()
 
 
 # ============================================================
@@ -146,13 +174,27 @@ async def health_check():
     """
     健康检查接口。
 
-    返回服务状态和模型加载状态。
+    返回服务状态和两个模型的加载状态。
     可通过 curl http://127.0.0.1:8000/health 测试。
     """
+    tsrd_loaded = model_tsrd is not None and model_tsrd.loaded
+    roi_loaded = model_tsrd_roi is not None and model_tsrd_roi.loaded
+
+    # 当前使用的模型名称（前端兼容）
+    active_name = MODEL_NAME_TSRD
+    if tsrd_loaded:
+        active_name = MODEL_NAME_TSRD
+    elif roi_loaded:
+        active_name = MODEL_NAME_ROI
+
     return {
         "status": "ok",
-        "model_loaded": model is not None and model.loaded,
-        "model_name": MODEL_NAME if model is not None and model.loaded else "未加载",
+        "model_loaded": tsrd_loaded or roi_loaded,
+        "model_name": active_name,
+        "models": {
+            "tsrd": {"loaded": tsrd_loaded, "name": MODEL_NAME_TSRD},
+            "tsrd_roi": {"loaded": roi_loaded, "name": MODEL_NAME_ROI},
+        },
     }
 
 
@@ -160,29 +202,51 @@ async def health_check():
 # 接口：POST /predict
 # ============================================================
 @app.post("/predict")
-async def predict(file: UploadFile = File(...)):
+async def predict(
+    file: UploadFile = File(...),
+    mode: str = Form("batch"),
+    roi_x1: Optional[int] = Form(None),
+    roi_y1: Optional[int] = Form(None),
+    roi_x2: Optional[int] = Form(None),
+    roi_y2: Optional[int] = Form(None),
+):
     """
-    交通标志识别接口。
+    交通标志识别接口（支持多模型自动切换）。
 
-    上传一张交通标志图片，返回识别结果。
+    根据 mode 参数自动选择模型和预处理方式：
+      - mode=batch       → TSRD Model（全图 resize，默认）
+      - mode=upload_roi  → TSRD-ROI Model（需提供 ROI 坐标）
+      - mode=camera_roi  → TSRD-ROI Model（需提供 ROI 坐标）
 
-    请求格式: multipart/form-data，字段名为 "file"
+    请求格式: multipart/form-data
+      - file: 图片文件
+      - mode: 识别模式（可选，默认 "batch"）
+      - roi_x1, roi_y1, roi_x2, roi_y2: ROI 边界框（upload_roi / camera_roi 模式必需）
+
     支持格式: jpg, jpeg, png
 
     返回格式:
     {
-        "class_id": int,        # 预测类别 ID (0-57)
-        "class_name": str,      # 类别中文名
-        "confidence": float,    # 置信度 (0-1)
-        "processing_time": float, # 推理耗时（秒）
-        "reliable": bool        # 是否可靠 (confidence >= 阈值)
+        "class_id": int,
+        "class_name": str,
+        "confidence": float,
+        "processing_time": float,
+        "reliable": bool,
+        "mode": str,           # 当前使用的模式
+        "model_name": str,     # 当前使用的模型名称
     }
     """
-    # ---- 1. 检查模型是否就绪 ----
-    if model is None or not model.loaded:
+    # ---- 1. 确定模式与选择模型 ----
+    if mode not in MODE_ROUTING:
+        mode = "batch"
+
+    model_var_name, model_display_name, use_roi = MODE_ROUTING[mode]
+    selected_model = model_tsrd if model_var_name == "model_tsrd" else model_tsrd_roi
+
+    if selected_model is None or not selected_model.loaded:
         raise HTTPException(
             status_code=503,
-            detail="模型未加载，服务暂不可用。请检查模型文件路径是否正确。",
+            detail=f"模型 {model_display_name} 未加载，请检查模型文件路径是否正确",
         )
 
     # ---- 2. 验证文件类型 ----
@@ -197,26 +261,37 @@ async def predict(file: UploadFile = File(...)):
     if not image_bytes:
         raise HTTPException(status_code=400, detail="上传文件为空")
 
-    # ---- 4. 图片预处理 ----
+    # ---- 4. ROI 模式参数校验 ----
+    if use_roi:
+        if any(v is None for v in [roi_x1, roi_y1, roi_x2, roi_y2]):
+            raise HTTPException(
+                status_code=400,
+                detail=f"模式 '{mode}' 需要提供 ROI 坐标 (roi_x1, roi_y1, roi_x2, roi_y2)",
+            )
+
+    # ---- 5. 图片预处理 ----
     try:
-        processed = preprocess_image(image_bytes)
+        if use_roi:
+            processed = preprocess_image_roi(image_bytes, roi_x1, roi_y1, roi_x2, roi_y2)
+        else:
+            processed = preprocess_image(image_bytes)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"图片预处理失败: {str(e)}")
 
-    # ---- 5. 模型推理 ----
+    # ---- 6. 模型推理 ----
     start_time = time.time()
     try:
-        proba = model.predict(processed)
+        proba = selected_model.predict(processed)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"模型推理失败: {str(e)}")
     elapsed = time.time() - start_time
 
-    # ---- 6. 解析结果 ----
-    proba = proba[0]                        # shape (58,)
-    class_id = int(np.argmax(proba))        # 最高概率的类别索引
-    confidence = float(proba[class_id])     # 对应的置信度
+    # ---- 7. 解析结果 ----
+    proba = proba[0]
+    class_id = int(np.argmax(proba))
+    confidence = float(proba[class_id])
     class_name = get_class_name(class_id, class_names)
     reliable = confidence >= CONFIDENCE_THRESHOLD
 
@@ -226,6 +301,8 @@ async def predict(file: UploadFile = File(...)):
         "confidence": round(confidence, 4),
         "processing_time": round(elapsed, 4),
         "reliable": reliable,
+        "mode": mode,
+        "model_name": model_display_name,
     }
 
 
@@ -283,10 +360,12 @@ async def submit_feedback(
         raise HTTPException(status_code=422, detail=f"反馈数据格式错误: {str(e)}")
 
     # ---- 2. 核对正确类别的名称 ----
-    expected_name = get_class_name(data.correct_class_id, class_names)
-    if data.correct_class_name != expected_name:
-        # 以前端传的为准，但打印一条警告
-        print(f"[WARN] Class name mismatch: corrected_id={data.correct_class_id}")
+    # 当 correct_class_id 为 -1 时，表示"无正确类别"，跳过名称核对
+    if data.correct_class_id >= 0:
+        expected_name = get_class_name(data.correct_class_id, class_names)
+        if data.correct_class_name != expected_name:
+            # 以前端传的为准，但打印一条警告
+            print(f"[WARN] Class name mismatch: corrected_id={data.correct_class_id}")
 
     # ---- 3. 读取图片内容 ----
     image_bytes = None

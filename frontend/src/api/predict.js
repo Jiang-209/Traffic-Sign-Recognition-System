@@ -10,7 +10,7 @@ import axios from 'axios'
 const BASE_URL = '/api'
 
 // 创建 axios 实例，统一配置
-const apiClient = axios.create({
+export const apiClient = axios.create({
   baseURL: BASE_URL,
   timeout: 30000,       // 30 秒超时
   headers: {
@@ -30,12 +30,22 @@ export async function checkHealth() {
 /**
  * 上传图片进行交通标志识别
  * @param {File} file - 图片文件对象
+ * @param {string} mode - 识别模式: 'batch' | 'upload_roi' | 'camera_roi'
+ * @param {Object|null} roiBox - ROI 边界框 { x1, y1, x2, y2 }（upload_roi / camera_roi 模式必需）
  * @returns {Promise<Object>} 识别结果
- *   { class_id, class_name, confidence, processing_time, reliable }
+ *   { class_id, class_name, confidence, processing_time, reliable, mode, model_name }
  */
-export async function predictImage(file) {
+export async function predictImage(file, mode = 'batch', roiBox = null) {
   const formData = new FormData()
   formData.append('file', file)
+  formData.append('mode', mode)
+
+  if (roiBox) {
+    formData.append('roi_x1', roiBox.x1)
+    formData.append('roi_y1', roiBox.y1)
+    formData.append('roi_x2', roiBox.x2)
+    formData.append('roi_y2', roiBox.y2)
+  }
 
   const { data } = await apiClient.post('/predict', formData, {
     headers: {
