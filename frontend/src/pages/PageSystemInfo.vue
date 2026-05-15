@@ -6,7 +6,7 @@
     </div>
 
     <div class="info-grid">
-      <!-- 系统说明（合并） -->
+      <!-- 系统说明 - 直接修改此段文字即可 -->
       <div class="info-card span-2">
         <h3 class="info-card-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -14,64 +14,30 @@
           </svg>
           系统说明
         </h3>
-
         <div class="info-text">
-          <!-- TODO: 请替换为实际使用说明 -->
-          <p>本系统基于卷积神经网络（CNN）实现中国交通标志的自动识别，支持单张图片识别、摄像头实时识别和批量识别三种模式。</p>
+          <p>本系统基于卷积神经网络实现中国交通标志的自动识别，支持单张图片识别、摄像头实时识别和批量识别三种模式。</p>
           <br/>
           <p><strong>图片识别：</strong>上传包含交通标志的图片，系统自动识别并返回最可能的类别及置信度。支持上传 JPG/PNG 格式图片，可选择 ROI 区域进行精确识别。</p>
           <br/>
-          <p><strong>摄像头识别：</strong>使用电脑摄像头实时捕捉画面，自动检测并识别交通标志。</p>
+          <p><strong>摄像头识别：</strong>使用电脑摄像头实时捕捉画面，将交通标志放入ROI区域内，系统自动检测并识别交通标志。</p>
           <br/>
-          <p><strong>批量识别：</strong>一次上传多张图片，系统按顺序逐一识别，汇总结果展示。</p>
-        </div>
-
-        <h4 class="info-sub-title">TSRD Model</h4>
-        <ul class="info-list">
-          <!-- TODO: 请替换为实际模型说明 -->
-          <li><strong>类型：</strong>全图 Resize 基线模型</li>
-          <li><strong>输入：</strong>整张图片缩放到固定尺寸</li>
-          <li><strong>适用场景：</strong>批量识别、常规图片识别</li>
-          <li><strong>特点：</strong>处理速度快，适用于标志占比较大的图片</li>
-        </ul>
-
-        <h4 class="info-sub-title">TSRD-ROI Model</h4>
-        <ul class="info-list">
-          <!-- TODO: 请替换为实际模型说明 -->
-          <li><strong>类型：</strong>ROI 裁剪预训练模型</li>
-          <li><strong>输入：</strong>用户框选的 ROI 区域（裁剪后缩放）</li>
-          <li><strong>适用场景：</strong>图片框选识别、摄像头 ROI 识别</li>
-          <li><strong>特点：</strong>对小型标志更敏感，减少背景干扰</li>
-        </ul>
-
-        <h4 class="info-sub-title">数据集说明</h4>
-        <ul class="info-list">
-          <!-- TODO: 请替换为实际数据集说明 -->
-          <li><strong>数据集：</strong>TSRD（Traffic Sign Recognition Dataset）</li>
-          <li><strong>类别数：</strong>58 类中国交通标志</li>
-          <li><strong>覆盖类型：</strong>禁令标志、指示标志、警告标志等</li>
-        </ul>
-
-        <h4 class="info-sub-title">注意事项</h4>
-        <div class="info-text">
-          <!-- TODO: 请替换为实际注意事项 -->
+          <p><strong>批量识别：</strong>一次上传多张图片，系统按顺序逐一识别，并汇总结果展示。</p>
+          <br/>
+          <p><strong>TSRD Model：</strong>全图 Resize 基线模型，输入为整张图片缩放到固定尺寸，处理速度快，适用于标志占比较大的图片。</p>
+          <br/>
+          <p><strong>TSRD-ROI Model：</strong>ROI 裁剪预训练模型，输入为用户框选的 ROI 区域，对小型标志更敏感，减少背景干扰。</p>
+          <br/>
+          <p><strong>数据集：</strong>TSRD（Traffic Sign Recognition Dataset），共 58 类中国交通标志，覆盖禁令标志、指示标志、警告标志等。</p>
+          <br/>
+          <p><strong>注意事项：</strong></p>
           <p>1. 本系统识别结果仅供参考，不应作为驾驶决策的唯一依据。</p>
-          <br/>
           <p>2. 识别准确率受拍摄角度、光照条件、标志清晰度等因素影响。</p>
-          <br/>
           <p>3. 摄像头识别模式需要浏览器授权摄像头权限。</p>
-          <br/>
           <p>4. 批量识别时，文件数量过多可能会增加处理时间。</p>
-          <br/>
           <p>5. 交通标志大全数据来源：北京市交通管理局官方网站。</p>
+          <br/>
+          <p><strong>技术栈：</strong>后端 FastAPI + TensorFlow，前端 Vue 3 + Vite，模型架构为 CNN 卷积神经网络。</p>
         </div>
-
-        <h4 class="info-sub-title">技术栈</h4>
-        <ul class="info-list">
-          <li><strong>后端：</strong>FastAPI + TensorFlow</li>
-          <li><strong>前端：</strong>Vue 3 + Vite</li>
-          <li><strong>模型架构：</strong>CNN 卷积神经网络</li>
-        </ul>
       </div>
 
       <!-- 帮助反馈 -->
@@ -220,14 +186,6 @@ async function submitHelp() {
 .info-card-title svg {
   color: var(--color-primary);
   flex-shrink: 0;
-}
-
-.info-sub-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--color-text);
-  margin-top: 18px;
-  margin-bottom: 8px;
 }
 
 .info-text {
