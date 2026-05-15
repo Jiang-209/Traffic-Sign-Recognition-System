@@ -48,7 +48,7 @@ onMounted(async () => {
 
 <style scoped>
 .header {
-  background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+  background: #005375;
   color: #fff;
   padding: 0 24px;
   box-shadow: 0 2px 12px rgba(37, 99, 235, 0.25);

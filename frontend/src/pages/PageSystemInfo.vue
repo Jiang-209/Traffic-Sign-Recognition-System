@@ -6,14 +6,15 @@
     </div>
 
     <div class="info-grid">
-      <!-- 使用说明 -->
+      <!-- 系统说明（合并） -->
       <div class="info-card span-2">
         <h3 class="info-card-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
           </svg>
-          使用说明
+          系统说明
         </h3>
+
         <div class="info-text">
           <!-- TODO: 请替换为实际使用说明 -->
           <p>本系统基于卷积神经网络（CNN）实现中国交通标志的自动识别，支持单张图片识别、摄像头实时识别和批量识别三种模式。</p>
@@ -24,16 +25,8 @@
           <br/>
           <p><strong>批量识别：</strong>一次上传多张图片，系统按顺序逐一识别，汇总结果展示。</p>
         </div>
-      </div>
 
-      <!-- 模型介绍 -->
-      <div class="info-card">
-        <h3 class="info-card-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-          </svg>
-          TSRD Model
-        </h3>
+        <h4 class="info-sub-title">TSRD Model</h4>
         <ul class="info-list">
           <!-- TODO: 请替换为实际模型说明 -->
           <li><strong>类型：</strong>全图 Resize 基线模型</li>
@@ -41,15 +34,8 @@
           <li><strong>适用场景：</strong>批量识别、常规图片识别</li>
           <li><strong>特点：</strong>处理速度快，适用于标志占比较大的图片</li>
         </ul>
-      </div>
 
-      <div class="info-card">
-        <h3 class="info-card-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-          </svg>
-          TSRD-ROI Model
-        </h3>
+        <h4 class="info-sub-title">TSRD-ROI Model</h4>
         <ul class="info-list">
           <!-- TODO: 请替换为实际模型说明 -->
           <li><strong>类型：</strong>ROI 裁剪预训练模型</li>
@@ -57,32 +43,16 @@
           <li><strong>适用场景：</strong>图片框选识别、摄像头 ROI 识别</li>
           <li><strong>特点：</strong>对小型标志更敏感，减少背景干扰</li>
         </ul>
-      </div>
 
-      <!-- 数据说明 -->
-      <div class="info-card">
-        <h3 class="info-card-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-          </svg>
-          数据集说明
-        </h3>
+        <h4 class="info-sub-title">数据集说明</h4>
         <ul class="info-list">
           <!-- TODO: 请替换为实际数据集说明 -->
           <li><strong>数据集：</strong>TSRD（Traffic Sign Recognition Dataset）</li>
           <li><strong>类别数：</strong>58 类中国交通标志</li>
           <li><strong>覆盖类型：</strong>禁令标志、指示标志、警告标志等</li>
         </ul>
-      </div>
 
-      <!-- 注意事项 -->
-      <div class="info-card">
-        <h3 class="info-card-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-          注意事项
-        </h3>
+        <h4 class="info-sub-title">注意事项</h4>
         <div class="info-text">
           <!-- TODO: 请替换为实际注意事项 -->
           <p>1. 本系统识别结果仅供参考，不应作为驾驶决策的唯一依据。</p>
@@ -95,16 +65,8 @@
           <br/>
           <p>5. 交通标志大全数据来源：北京市交通管理局官方网站。</p>
         </div>
-      </div>
 
-      <!-- 技术信息 -->
-      <div class="info-card">
-        <h3 class="info-card-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
-          </svg>
-          技术栈
-        </h3>
+        <h4 class="info-sub-title">技术栈</h4>
         <ul class="info-list">
           <li><strong>后端：</strong>FastAPI + TensorFlow</li>
           <li><strong>前端：</strong>Vue 3 + Vite</li>
@@ -258,6 +220,14 @@ async function submitHelp() {
 .info-card-title svg {
   color: var(--color-primary);
   flex-shrink: 0;
+}
+
+.info-sub-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-top: 18px;
+  margin-bottom: 8px;
 }
 
 .info-text {
