@@ -447,6 +447,13 @@ def _match_tsrd(sign_name: str) -> bool:
     cleaned = sign_name.replace("标志", "").replace("（", "(").replace("）", ")")
     if cleaned in _TSRD_NAMES:
         return True
+    # 处理带括号后缀的名称，如 "注意合流标志（左侧）" -> "注意合流"
+    base = sign_name.split("（")[0].split("(")[0].strip()
+    if base in _TSRD_NAMES:
+        return True
+    base_cleaned = base.replace("标志", "")
+    if base_cleaned in _TSRD_NAMES:
+        return True
     return False
 
 
